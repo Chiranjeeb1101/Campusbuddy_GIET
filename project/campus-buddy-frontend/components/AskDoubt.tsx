@@ -71,8 +71,8 @@ export function AskDoubt() {
       // gemini-1.5-flash-8b is often available when others are not
       // Discovered authorized models for this key
       const modelNames = [
-        "gemini-2.0-flash",
         "gemini-2.5-flash",
+        "gemini-2.0-flash",
         "gemini-flash-latest",
         "gemini-pro-latest",
         "gemini-1.5-flash-8b"
