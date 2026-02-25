@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { GraduationCap, MessageCircle, Users, BookOpen, LogOut, Home, UserCheck, Calendar, Heart, Briefcase, Menu, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { Page } from '../App';
 
 interface HeaderProps {
@@ -24,88 +25,92 @@ export function Header({ currentPage, onNavigate, onLogout }: HeaderProps) {
   ];
 
   return (
-    <header className="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50">
+    <header className="glass-card sticky top-0 z-50 border-b border-white/20 transition-all duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          <div className="flex items-center space-x-2">
-            <GraduationCap className="h-8 w-8 text-blue-600" />
-            <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+        <div className="flex justify-between items-center h-20">
+          <div className="flex items-center space-x-3 group cursor-pointer" onClick={() => onNavigate('landing')}>
+            <div className="p-2 bg-brand-primary rounded-xl group-hover:scale-110 transition-transform duration-300 shadow-lg shadow-indigo-500/20">
+              <GraduationCap className="h-6 w-6 text-white" />
+            </div>
+            <span className="text-2xl font-black text-gradient tracking-tight">
               CampusBuddy
             </span>
           </div>
-          
-          {/* Desktop Navigation - Show first 4 items */}
-          <nav className="hidden lg:flex space-x-1">
+
+          {/* Desktop Navigation */}
+          <nav className="hidden lg:flex items-center space-x-1 p-1 bg-white/30 backdrop-blur-sm rounded-2xl border border-white/50">
             {navItems.slice(0, 4).map((item) => {
               const Icon = item.icon;
               const isActive = currentPage === item.id;
-              
+
               return (
                 <button
                   key={item.id}
                   onClick={() => onNavigate(item.id)}
-                  className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-200 ${
-                    isActive 
-                      ? 'bg-blue-100 text-blue-700 shadow-sm' 
-                      : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
-                  }`}
+                  className={`relative flex items-center space-x-2 px-6 py-2.5 rounded-xl transition-all duration-300 ${isActive
+                    ? 'bg-white text-indigo-700 shadow-premium'
+                    : 'text-slate-600 hover:text-indigo-600 hover:bg-white/50'
+                    }`}
                 >
                   <Icon className="h-4 w-4" />
-                  <span className="font-medium text-sm">{item.label}</span>
+                  <span className="font-semibold text-sm">{item.label}</span>
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeNav"
+                      className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-indigo-600 rounded-full"
+                    />
+                  )}
                 </button>
               );
             })}
           </nav>
 
-          {/* Desktop More Menu */}
-          <div className="hidden lg:flex items-center space-x-2">
+          {/* Desktop More Menu & Logout */}
+          <div className="hidden lg:flex items-center space-x-4">
             <div className="relative group">
-              <button className="flex items-center space-x-2 px-3 py-2 rounded-lg text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200">
+              <button className="flex items-center space-x-2 px-4 py-2.5 rounded-xl text-slate-600 hover:text-indigo-600 hover:bg-white/50 transition-all duration-300 font-semibold text-sm">
                 <Menu className="h-4 w-4" />
-                <span className="font-medium text-sm">More</span>
+                <span>More</span>
               </button>
-              
-              {/* Dropdown Menu */}
-              <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                <div className="py-2">
-                  {navItems.slice(4).map((item) => {
-                    const Icon = item.icon;
-                    const isActive = currentPage === item.id;
-                    
-                    return (
-                      <button
-                        key={item.id}
-                        onClick={() => onNavigate(item.id)}
-                        className={`w-full flex items-center space-x-3 px-4 py-2 text-left transition-colors ${
-                          isActive 
-                            ? 'bg-blue-50 text-blue-700' 
-                            : 'text-gray-700 hover:bg-gray-50'
+
+              <div className="absolute right-0 top-full mt-2 w-56 glass-card rounded-2xl border border-white/20 opacity-0 invisible group-hover:opacity-100 group-hover:visible translate-y-2 group-hover:translate-y-0 transition-all duration-300 z-50 p-2 overflow-hidden">
+                {navItems.slice(4).map((item) => {
+                  const Icon = item.icon;
+                  const isActive = currentPage === item.id;
+
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => onNavigate(item.id)}
+                      className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-left transition-all duration-200 ${isActive
+                        ? 'bg-indigo-50 text-indigo-700'
+                        : 'text-slate-600 hover:bg-slate-50'
                         }`}
-                      >
-                        <Icon className="h-4 w-4" />
-                        <span className="font-medium text-sm">{item.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span className="font-semibold text-sm">{item.label}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
+            <div className="w-px h-8 bg-slate-200" />
+
             <button
               onClick={onLogout}
-              className="flex items-center space-x-2 text-gray-600 hover:text-red-600 transition-colors px-3 py-2 rounded-lg hover:bg-red-50"
+              className="flex items-center space-x-2 text-slate-500 hover:text-red-500 transition-all px-4 py-2.5 rounded-xl hover:bg-red-50 font-semibold text-sm"
             >
               <LogOut className="h-4 w-4" />
-              <span className="font-medium text-sm">Logout</span>
+              <span>Logout</span>
             </button>
           </div>
 
           {/* Mobile Menu Button */}
-          <div className="lg:hidden flex items-center space-x-2">
+          <div className="lg:hidden">
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="p-2 text-gray-600 hover:text-blue-600 transition-colors"
-              aria-label="Toggle menu"
+              className="p-3 bg-white shadow-sm border border-slate-100 rounded-xl text-slate-600 hover:text-indigo-600 transition-all"
             >
               {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
@@ -113,46 +118,51 @@ export function Header({ currentPage, onNavigate, onLogout }: HeaderProps) {
         </div>
 
         {/* Mobile Navigation */}
-        {isMobileMenuOpen && (
-          <nav className="lg:hidden pb-4 border-t border-gray-200">
-            <div className="grid grid-cols-2 gap-2 pt-4">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = currentPage === item.id;
-                
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => {
-                      onNavigate(item.id);
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className={`flex items-center space-x-2 p-3 rounded-lg transition-all duration-200 ${
-                      isActive 
-                        ? 'bg-blue-100 text-blue-700' 
-                        : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
-                    }`}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span className="font-medium text-sm">{item.label}</span>
-                  </button>
-                );
-              })}
-              
-              {/* Mobile Logout */}
-              <button
-                onClick={() => {
-                  onLogout();
-                  setIsMobileMenuOpen(false);
-                }}
-                className="flex items-center space-x-2 p-3 rounded-lg text-gray-600 hover:text-red-600 hover:bg-red-50 transition-all duration-200 col-span-2"
-              >
-                <LogOut className="h-4 w-4" />
-                <span className="font-medium text-sm">Logout</span>
-              </button>
-            </div>
-          </nav>
-        )}
+        <AnimatePresence>
+          {isMobileMenuOpen && (
+            <motion.nav
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="lg:hidden pb-6 border-t border-slate-100 overflow-hidden"
+            >
+              <div className="grid grid-cols-2 gap-3 pt-6">
+                {navItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = currentPage === item.id;
+
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        onNavigate(item.id);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className={`flex items-center space-x-2 p-4 rounded-2xl transition-all duration-200 ${isActive
+                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'
+                        : 'bg-white border border-slate-100 text-slate-600 hover:border-indigo-100'
+                        }`}
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span className="font-bold text-sm tracking-tight">{item.label}</span>
+                    </button>
+                  );
+                })}
+
+                <button
+                  onClick={() => {
+                    onLogout();
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="flex items-center space-x-2 p-4 rounded-2xl bg-red-50 text-red-600 font-bold text-sm tracking-tight col-span-2 border border-red-100"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span>Logout</span>
+                </button>
+              </div>
+            </motion.nav>
+          )}
+        </AnimatePresence>
       </div>
     </header>
   );

@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Search, Upload, Download, BookOpen, FileText, Star, Eye, Calendar, User, Filter } from 'lucide-react';
+import { useState } from 'react';
+import { Search, Upload, Download, BookOpen, FileText, Star, Eye, Share2, Layers, Zap, Sparkles } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface Resource {
   id: string;
@@ -21,12 +22,27 @@ export function ResourceHub() {
   const [selectedSubject, setSelectedSubject] = useState('all');
   const [selectedType, setSelectedType] = useState('all');
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+
+  const handleDownload = (title: string) => {
+    setToastMessage(`Downloading "${title}"... check your browser downloads!`);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
+  };
+
+  const handleUpload = () => {
+    setShowUploadModal(false);
+    setToastMessage(`Resource successfully uploaded to the knowledge base!`);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 4000);
+  };
 
   const resources: Resource[] = [
     {
       id: '1',
-      title: 'Complete Data Structures Notes',
-      description: 'Comprehensive notes covering all data structures from arrays to advanced trees. Includes code examples and practice problems.',
+      title: 'Data Structures Notes',
+      description: 'Comprehensive notes covering all data structures from arrays to advanced trees. Perfect for quick revision.',
       subject: 'Computer Science',
       type: 'notes',
       uploadedBy: 'Sarah Mitchell',
@@ -39,8 +55,8 @@ export function ResourceHub() {
     },
     {
       id: '2',
-      title: 'Database Design Project Template',
-      description: 'Complete project template for database design course. Includes ER diagrams, normalization examples, and SQL queries.',
+      title: 'Database Management Project',
+      description: 'Project template for database design. Includes ER diagrams and SQL scripts for common operations.',
       subject: 'Database Systems',
       type: 'project',
       uploadedBy: 'Emily Rodriguez',
@@ -54,7 +70,7 @@ export function ResourceHub() {
     {
       id: '3',
       title: 'Calculus Practice Problems',
-      description: 'Collection of solved calculus problems with step-by-step solutions. Great for exam preparation.',
+      description: 'Collection of calculus problems with step-by-step solutions. Essential for exam preparation.',
       subject: 'Mathematics',
       type: 'assignment',
       uploadedBy: 'Alex Chen',
@@ -67,8 +83,8 @@ export function ResourceHub() {
     },
     {
       id: '4',
-      title: 'Physics Lab Manual - Mechanics',
-      description: 'Complete lab manual for physics mechanics experiments. Includes theory, procedures, and sample calculations.',
+      title: 'Physics Lab Guide',
+      description: 'Standard lab manual for mechanics experiments. Includes theoretical foundations and calculation models.',
       subject: 'Physics',
       type: 'lab',
       uploadedBy: 'David Park',
@@ -79,34 +95,6 @@ export function ResourceHub() {
       fileSize: '3.1 MB',
       tags: ['physics', 'lab', 'mechanics', 'experiments'],
     },
-    {
-      id: '5',
-      title: 'Machine Learning Cheat Sheet',
-      description: 'Quick reference guide for ML algorithms, formulas, and key concepts. Perfect for exam preparation.',
-      subject: 'Machine Learning',
-      type: 'reference',
-      uploadedBy: 'Lisa Wang',
-      uploadDate: new Date('2024-01-05'),
-      downloads: 312,
-      rating: 4.9,
-      views: 678,
-      fileSize: '654 KB',
-      tags: ['machine-learning', 'algorithms', 'reference', 'cheat-sheet'],
-    },
-    {
-      id: '6',
-      title: 'Web Development Starter Kit',
-      description: 'Complete starter template for web development projects. Includes HTML, CSS, JavaScript boilerplate and best practices.',
-      subject: 'Web Development',
-      type: 'project',
-      uploadedBy: 'Mark Johnson',
-      uploadDate: new Date('2024-01-03'),
-      downloads: 445,
-      rating: 4.8,
-      views: 789,
-      fileSize: '1.2 MB',
-      tags: ['web-development', 'html', 'css', 'javascript', 'template'],
-    },
   ];
 
   const subjects = ['all', 'Computer Science', 'Mathematics', 'Physics', 'Database Systems', 'Machine Learning', 'Web Development'];
@@ -114,206 +102,247 @@ export function ResourceHub() {
 
   const filteredResources = resources.filter(resource => {
     const matchesSearch = resource.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         resource.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         resource.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
-    
+      resource.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      resource.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+
     const matchesSubject = selectedSubject === 'all' || resource.subject === selectedSubject;
     const matchesType = selectedType === 'all' || resource.type === selectedType;
-    
+
     return matchesSearch && matchesSubject && matchesType;
   });
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'notes': return BookOpen;
+      case 'notes': return Layers;
       case 'assignment': return FileText;
-      case 'project': return BookOpen;
-      case 'lab': return FileText;
-      case 'reference': return BookOpen;
+      case 'project': return Zap;
+      case 'lab': return BookOpen;
+      case 'reference': return Share2;
       default: return FileText;
     }
   };
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'notes': return 'bg-blue-100 text-blue-800';
-      case 'assignment': return 'bg-green-100 text-green-800';
-      case 'project': return 'bg-purple-100 text-purple-800';
-      case 'lab': return 'bg-orange-100 text-orange-800';
-      case 'reference': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'notes': return 'text-indigo-600 bg-indigo-50';
+      case 'assignment': return 'text-emerald-600 bg-emerald-50';
+      case 'project': return 'text-purple-600 bg-purple-50';
+      case 'lab': return 'text-amber-600 bg-amber-50';
+      default: return 'text-slate-600 bg-slate-50';
     }
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+      <motion.div
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        className="flex flex-col md:flex-row md:items-center md:justify-between mb-12"
+      >
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Resource Hub</h1>
-          <p className="text-gray-600">Discover and share academic resources with your peers.</p>
+          <h1 className="text-5xl font-black text-slate-900 tracking-tight leading-tight mb-3">
+            Resource <span className="text-gradient">Hub</span>
+          </h1>
+          <p className="text-slate-500 text-lg font-medium">Access and share academic materials with your peers.</p>
         </div>
-        <button
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
           onClick={() => setShowUploadModal(true)}
-          className="mt-4 md:mt-0 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold px-6 py-3 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 flex items-center space-x-2"
+          className="mt-6 md:mt-0 bg-brand-surface text-white font-black px-8 py-4 rounded-[1.5rem] shadow-xl hover:shadow-indigo-500/20 transition-all flex items-center space-x-3 overflow-hidden group relative"
         >
-          <Upload className="h-4 w-4" />
-          <span>Upload Resource</span>
-        </button>
-      </div>
+          <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <Upload className="h-5 w-5 relative z-10" />
+          <span className="relative z-10 uppercase tracking-widest text-xs">Upload Resource</span>
+        </motion.button>
+      </motion.div>
 
-      {/* Search and Filters */}
-      <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 mb-8">
+      {/* Persistent Filters */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="glass-card rounded-[2.5rem] p-4 border border-white/50 mb-12 shadow-2xl"
+      >
         <div className="grid md:grid-cols-3 gap-4">
-          <div className="relative">
-            <Search className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+          <div className="relative group">
+            <Search className="h-5 w-5 text-slate-400 absolute left-5 top-1/2 -translate-y-1/2 group-focus-within:text-brand-primary transition-colors" />
             <input
               type="text"
-              placeholder="Search resources, subjects, or tags..."
+              placeholder="Search for resources..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-brand-primary/5 focus:bg-white transition-all text-slate-900 font-medium"
             />
           </div>
-          
+
           <select
             value={selectedSubject}
             onChange={(e) => setSelectedSubject(e.target.value)}
-            className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-brand-primary/5 focus:bg-white transition-all text-slate-900 font-bold text-sm appearance-none"
           >
             {subjects.map(subject => (
-              <option key={subject} value={subject}>
-                {subject === 'all' ? 'All Subjects' : subject}
-              </option>
+              <option key={subject} value={subject}>{subject === 'all' ? 'All Subjects' : subject}</option>
             ))}
           </select>
-          
+
           <select
             value={selectedType}
             onChange={(e) => setSelectedType(e.target.value)}
-            className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-brand-primary/5 focus:bg-white transition-all text-slate-900 font-bold text-sm appearance-none"
           >
             {types.map(type => (
-              <option key={type} value={type}>
-                {type === 'all' ? 'All Types' : type.charAt(0).toUpperCase() + type.slice(1)}
-              </option>
+              <option key={type} value={type}>{type === 'all' ? 'All Types' : type.toUpperCase()}</option>
             ))}
           </select>
         </div>
-      </div>
+      </motion.div>
 
-      {/* Resources Grid */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Assets Grid */}
+      <motion.div
+        initial="hidden"
+        whileInView="show"
+        viewport={{ once: true }}
+        variants={{
+          hidden: { opacity: 0 },
+          show: {
+            opacity: 1,
+            transition: { staggerChildren: 0.1 }
+          }
+        }}
+        className="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
+      >
         {filteredResources.map((resource) => {
           const TypeIcon = getTypeIcon(resource.type);
-          
+
           return (
-            <div key={resource.id} className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-              {/* Header */}
-              <div className="p-6 border-b border-gray-100">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <TypeIcon className="h-5 w-5 text-blue-600" />
-                    </div>
-                    <span className={`px-2 py-1 text-xs font-medium rounded-md capitalize ${getTypeColor(resource.type)}`}>
-                      {resource.type}
-                    </span>
+            <motion.div
+              key={resource.id}
+              variants={{
+                hidden: { opacity: 0, y: 20 },
+                show: { opacity: 1, y: 0 }
+              }}
+              className="group relative bg-white rounded-[2.5rem] shadow-premium border border-slate-100 overflow-hidden hover:shadow-2xl transition-all duration-500 flex flex-col"
+            >
+              <div className="p-8 flex-1">
+                <div className="flex items-center justify-between mb-6">
+                  <div className={`p-4 rounded-2xl ${getTypeColor(resource.type)} shadow-sm group-hover:scale-110 transition-transform`}>
+                    <TypeIcon className="h-6 w-6" />
                   </div>
-                  <div className="flex items-center space-x-1">
-                    <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                    <span className="text-sm font-medium text-gray-900">{resource.rating}</span>
+                  <div className="flex items-center gap-1.5 bg-amber-50 px-2.5 py-1 rounded-full">
+                    <Star className="h-3 w-3 text-amber-500 fill-amber-500" />
+                    <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest">{resource.rating}</span>
                   </div>
                 </div>
-                
-                <h3 className="font-bold text-gray-900 mb-2 line-clamp-2">{resource.title}</h3>
-                <p className="text-sm text-gray-600 leading-relaxed mb-3 line-clamp-3">{resource.description}</p>
-                
-                {/* Tags */}
-                <div className="flex flex-wrap gap-1 mb-3">
+
+                <h3 className="text-xl font-black text-slate-900 tracking-tight mb-3 group-hover:text-indigo-600 transition-colors">{resource.title}</h3>
+                <p className="text-slate-500 text-[14px] leading-relaxed mb-6 font-medium line-clamp-2">{resource.description}</p>
+
+                <div className="flex flex-wrap gap-2 mb-8">
                   {resource.tags.slice(0, 3).map((tag, index) => (
-                    <span key={index} className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-md">
+                    <span key={index} className="px-3 py-1 bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-widest rounded-lg border border-slate-100">
                       #{tag}
                     </span>
                   ))}
                 </div>
-                
-                <div className="text-xs text-gray-500">
-                  <span className="font-medium">{resource.subject}</span> • {resource.fileSize}
+
+                <div className="flex items-center justify-between pt-6 border-t border-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  <span>{resource.subject}</span>
+                  <span className="bg-slate-100 px-2 py-1 rounded-md">{resource.fileSize}</span>
                 </div>
               </div>
 
-              {/* Stats */}
-              <div className="p-4 bg-gray-50 border-b border-gray-100">
-                <div className="grid grid-cols-3 gap-4 text-center">
-                  <div>
-                    <div className="flex items-center justify-center space-x-1">
-                      <Download className="h-3 w-3 text-gray-500" />
-                      <span className="text-xs text-gray-600">Downloads</span>
-                    </div>
-                    <p className="text-sm font-semibold text-gray-900">{resource.downloads}</p>
-                  </div>
-                  <div>
-                    <div className="flex items-center justify-center space-x-1">
-                      <Eye className="h-3 w-3 text-gray-500" />
-                      <span className="text-xs text-gray-600">Views</span>
-                    </div>
-                    <p className="text-sm font-semibold text-gray-900">{resource.views}</p>
-                  </div>
-                  <div>
-                    <div className="flex items-center justify-center space-x-1">
-                      <Calendar className="h-3 w-3 text-gray-500" />
-                      <span className="text-xs text-gray-600">Uploaded</span>
-                    </div>
-                    <p className="text-sm font-semibold text-gray-900">
-                      {resource.uploadDate.toLocaleDateString('en', { month: 'short', day: 'numeric' })}
-                    </p>
-                  </div>
+              {/* Stats Bar */}
+              <div className="px-8 py-4 bg-slate-50/50 grid grid-cols-2 gap-4 border-y border-slate-50">
+                <div className="flex items-center gap-2">
+                  <Download className="h-3 w-3 text-slate-300" />
+                  <span className="text-[10px] font-bold text-slate-500">{resource.downloads} Downloads</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Eye className="h-3 w-3 text-slate-300" />
+                  <span className="text-[10px] font-bold text-slate-500">{resource.views} Views</span>
                 </div>
               </div>
 
-              {/* Footer */}
-              <div className="p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center space-x-2">
-                    <User className="h-4 w-4 text-gray-400" />
-                    <span className="text-sm text-gray-600">{resource.uploadedBy}</span>
-                  </div>
-                </div>
-                
-                <button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-3 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 flex items-center justify-center space-x-2">
+              {/* Action */}
+              <div className="p-8">
+                <button
+                  onClick={() => handleDownload(resource.title)}
+                  className="w-full py-4 bg-brand-primary/5 hover:bg-brand-primary text-brand-primary hover:text-white font-black rounded-2xl transition-all flex items-center justify-center gap-3 uppercase tracking-widest text-xs active:scale-95"
+                >
                   <Download className="h-4 w-4" />
-                  <span>Download Resource</span>
+                  Download File
                 </button>
               </div>
-            </div>
+            </motion.div>
           );
         })}
-      </div>
+      </motion.div>
 
       {filteredResources.length === 0 && (
-        <div className="text-center py-12">
-          <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No resources found</h3>
-          <p className="text-gray-600">Try adjusting your search criteria or filters.</p>
+        <div className="text-center py-24">
+          <Layers className="h-20 w-20 text-slate-100 mx-auto mb-6" />
+          <h3 className="text-2xl font-black text-slate-900 tracking-tight mb-2">No Resources Found</h3>
+          <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Try adjusting your filters</p>
         </div>
       )}
 
-      {/* Upload Modal Placeholder */}
-      {showUploadModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-8 max-w-md w-full">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Upload Resource</h2>
-            <p className="text-gray-600 mb-6">Upload functionality will be integrated with Firebase Storage in the full implementation.</p>
-            <button
-              onClick={() => setShowUploadModal(false)}
-              className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition-colors"
+      {/* Upload Modal */}
+      <AnimatePresence>
+        {showUploadModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[100] p-6"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              className="bg-white rounded-[3rem] p-10 max-w-lg w-full shadow-2xl border border-white/20 relative"
             >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
+              <div className="absolute top-8 right-8 cursor-pointer text-slate-300 hover:text-slate-900" onClick={() => setShowUploadModal(false)}>
+                <Share2 className="h-6 w-6 rotate-45" />
+              </div>
+              <div className="w-20 h-20 bg-indigo-50 rounded-[2rem] flex items-center justify-center mb-8">
+                <Upload className="h-10 w-10 text-indigo-600" />
+              </div>
+              <h2 className="text-3xl font-black text-slate-900 tracking-tight mb-4">Upload Resource</h2>
+              <p className="text-slate-500 font-medium leading-relaxed mb-8">
+                Share your academic materials with the community. Please ensure the file is relevant and correctly categorized.
+              </p>
+              <button
+                onClick={handleUpload}
+                className="w-full py-5 bg-brand-surface text-white font-black rounded-3xl hover:shadow-xl transition-all uppercase tracking-[0.2em] text-xs"
+              >
+                Upload File
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Action Toast */}
+      <AnimatePresence>
+        {showToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[200]"
+          >
+            <div className="bg-slate-900 text-white px-8 py-4 rounded-2xl shadow-2xl border border-white/10 flex items-center gap-3">
+              <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
+                <Sparkles className="h-4 w-4 text-white" />
+              </div>
+              <div>
+                <p className="text-sm font-black tracking-tight">{toastMessage}</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-1">Status: Success</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

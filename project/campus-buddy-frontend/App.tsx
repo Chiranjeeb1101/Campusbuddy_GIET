@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Header } from './components/Header';
 import { Dashboard } from './components/Dashboard';
 import { AskDoubt } from './components/AskDoubt';
@@ -18,15 +18,16 @@ export type Page = 'landing' | 'dashboard' | 'doubt' | 'peers' | 'resources' | '
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>('landing');
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [demoMode, setDemoMode] = useState(false); // Show login interface first
-  const { user, profile, loading, isAuthenticated, setDemoUser } = useAuth();
+  const { profile, loading, isAuthenticated } = useAuth();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [tempUserName, setTempUserName] = useState<string>('');
 
   const handleLogin = () => {
     setShowAuthModal(true);
   };
 
-  const handleAuthSuccess = () => {
+  const handleAuthSuccess = (name?: string) => {
+    if (name) setTempUserName(name);
     setIsLoggedIn(true);
     setShowAuthModal(false);
     setCurrentPage('dashboard');
@@ -39,12 +40,12 @@ function App() {
 
   const renderPage = () => {
     if (!isAuthenticated && !isLoggedIn) {
-      return <LandingPage onLogin={handleLogin} />;
+      return <LandingPage onLogin={handleLogin} onNavigate={setCurrentPage} />;
     }
 
     switch (currentPage) {
       case 'dashboard':
-        return <Dashboard onNavigate={setCurrentPage} />;
+        return <Dashboard onNavigate={setCurrentPage} userName={profile?.full_name || tempUserName} />;
       case 'doubt':
         return <AskDoubt />;
       case 'peers':
@@ -80,15 +81,15 @@ function App() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       {(isAuthenticated || isLoggedIn) && (
-        <Header 
-          currentPage={currentPage} 
+        <Header
+          currentPage={currentPage}
           onNavigate={setCurrentPage}
           onLogout={handleLogout}
         />
       )}
       {renderPage()}
-      
-      <AuthModal 
+
+      <AuthModal
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
         onSuccess={handleAuthSuccess}
