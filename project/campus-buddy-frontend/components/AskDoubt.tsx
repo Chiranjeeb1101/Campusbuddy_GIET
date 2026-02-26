@@ -71,11 +71,11 @@ export function AskDoubt() {
       // gemini-1.5-flash-8b is often available when others are not
       // Discovered authorized models for this key
       const modelNames = [
+        "gemini-2.0-flash-lite",
         "gemini-2.5-flash",
         "gemini-2.0-flash",
         "gemini-flash-latest",
-        "gemini-pro-latest",
-        "gemini-1.5-flash-8b"
+        "gemini-pro-latest"
       ];
 
       let lastError: any = null;
@@ -84,12 +84,16 @@ export function AskDoubt() {
       for (const modelName of modelNames) {
         try {
           console.log(`Sync Sequence: Attempting connection with ${modelName}...`);
-          const model = gAI.getGenerativeModel({ model: modelName });
+          const model = gAI.getGenerativeModel({
+            model: modelName,
+            systemInstruction: "You are an elite academic professor and expert researcher. Your responses must be high-depth, comprehensive, and scientifically accurate. Use structured formatting with bold headings, bullet points, and clear sections. When a student asks a question, provide the core answer first, followed by deep secondary context, historical development, and practical applications. Never give short or superficial answers."
+          });
 
           const result = await model.generateContent({
             contents: [{ role: 'user', parts: [{ text: inputValue }] }],
             generationConfig: {
-              maxOutputTokens: 1000,
+              maxOutputTokens: 8000,
+              temperature: 0.7,
             },
           });
 
