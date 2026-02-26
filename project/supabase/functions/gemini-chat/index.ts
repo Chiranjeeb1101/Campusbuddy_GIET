@@ -31,35 +31,51 @@ Please provide a helpful, accurate, and educational response. If the question is
 
 Keep your response concise but comprehensive, and always encourage learning.`
 
-    // Call Gemini API
-    const geminiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${geminiApiKey}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: academicPrompt
-            }]
-          }],
-          generationConfig: {
-            temperature: 0.7,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 1024,
-          },
-        }),
-      }
-    )
+    // Try Gemini models with fallback
+    const models = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro']
+    let geminiResponse: Response | null = null
+    let geminiData: any = null
 
-    if (!geminiResponse.ok) {
-      throw new Error(`Gemini API error: ${geminiResponse.status}`)
+    for (const model of models) {
+      try {
+        geminiResponse = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              contents: [{
+                parts: [{
+                  text: academicPrompt
+                }]
+              }],
+              generationConfig: {
+                temperature: 0.7,
+                topK: 40,
+                topP: 0.95,
+                maxOutputTokens: 1024,
+              },
+            }),
+          }
+        )
+
+        if (geminiResponse.ok) {
+          geminiData = await geminiResponse.json()
+          console.log(`Successfully used model: ${model}`)
+          break
+        }
+      } catch (err) {
+        console.log(`Model ${model} failed, trying next...`)
+        continue
+      }
     }
 
-    const geminiData = await geminiResponse.json()
+    if (!geminiData) {
+      throw new Error('All Gemini models failed. Please check your API key.')
+    }
+
     const aiResponse = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || 
                       "I'm sorry, I couldn't generate a response. Please try rephrasing your question."
 

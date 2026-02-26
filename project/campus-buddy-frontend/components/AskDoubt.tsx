@@ -10,8 +10,6 @@ interface Message {
   timestamp: Date;
 }
 
-// Google Gemini API Configuration
-
 // Initialize genAI safely
 let genAI: GoogleGenerativeAI | null = null;
 const initGenAI = () => {
@@ -64,18 +62,15 @@ export function AskDoubt() {
       const key = import.meta.env.VITE_GEMINI_API_KEY;
 
       if (!key || !gAI) {
-        throw new Error("MISSING_CONFIG: Gemini API Key is not detected in your browser environment. Please stop the terminal and run 'npm run dev' again to refresh .env settings.");
+        throw new Error("MISSING_CONFIG: Gemini API Key is not detected. Please ensure VITE_GEMINI_API_KEY is set in your .env file.");
       }
 
-      // Smart model fallback loop
-      // gemini-1.5-flash-8b is often available when others are not
-      // Discovered authorized models for this key
       const modelNames = [
+        "gemini-2.0-flash-lite",
         "gemini-2.5-flash",
         "gemini-2.0-flash",
         "gemini-flash-latest",
-        "gemini-pro-latest",
-        "gemini-1.5-flash-8b"
+        "gemini-pro-latest"
       ];
 
       let lastError: any = null;
@@ -84,12 +79,16 @@ export function AskDoubt() {
       for (const modelName of modelNames) {
         try {
           console.log(`Sync Sequence: Attempting connection with ${modelName}...`);
-          const model = gAI.getGenerativeModel({ model: modelName });
+          const model = gAI.getGenerativeModel({
+            model: modelName,
+            systemInstruction: "You are an elite academic professor and expert researcher. Your responses must be high-depth, comprehensive, and scientifically accurate. Use structured formatting with bold headings, bullet points, and clear sections. When a student asks a question, provide the core answer first, followed by deep secondary context, historical development, and practical applications. Never give short or superficial answers."
+          });
 
           const result = await model.generateContent({
             contents: [{ role: 'user', parts: [{ text: inputValue }] }],
             generationConfig: {
-              maxOutputTokens: 1000,
+              maxOutputTokens: 8000,
+              temperature: 0.7,
             },
           });
 
@@ -111,7 +110,7 @@ export function AskDoubt() {
 
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
-        content: text,
+        content: text || 'I encountered an issue generating a response.',
         isUser: false,
         timestamp: new Date(),
       };
@@ -119,17 +118,12 @@ export function AskDoubt() {
     } catch (error: any) {
       console.error("Gemini API Final Error:", error);
 
-      let errorMsg = error.toString();
-      let friendlyError = `Critical Error: ${errorMsg}`;
+      let friendlyError = `Error: ${error.message}`;
 
-      if (errorMsg.includes("MISSING_CONFIG")) {
-        friendlyError = "Configuration Error: The AI engine API key is missing. Please restart your dev server (npm run dev) to load the new key.";
-      } else if (errorMsg.includes("404") || errorMsg.includes("not found")) {
-        friendlyError = "Model Availability Issue: None of the AI models (Gemini 1.5/2.0/Pro) were found for this API key. ACTION: Please verify your key at Google AI Studio (aistudio.google.com) and ensure the 'Generative Language API' is enabled.";
-      } else if (errorMsg.includes("API_KEY_INVALID") || errorMsg.includes("403")) {
-        friendlyError = "Access Denied: The provided Gemini API key is invalid or restricted. Please verify the key matches your Google AI Studio project.";
-      } else if (errorMsg.includes("Safety") || errorMsg.includes("blocked")) {
-        friendlyError = "Content Warning: The response was blocked by safety filters. Try rephrasing your academic query.";
+      if (error.message.includes("All Gemini models failed")) {
+        friendlyError = "API Configuration Issue: No Gemini models available for this API key. Please verify your Gemini API key is configured correctly in your Supabase project settings.";
+      } else if (error.message.includes("not configured")) {
+        friendlyError = "Configuration Error: Gemini API key is not set in your Supabase environment. Please add GEMINI_API_KEY to your Supabase function secrets.";
       }
 
       const errorMessage: Message = {
