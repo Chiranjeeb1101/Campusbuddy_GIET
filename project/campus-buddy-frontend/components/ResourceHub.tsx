@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Upload, Download, BookOpen, FileText, Star, Eye, Share2, Layers, Zap, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getResources, Resource as DBResource } from '../lib/supabase';
 
 interface Resource {
   id: string;
@@ -24,21 +25,10 @@ export function ResourceHub() {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [dbResources, setDbResources] = useState<Resource[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleDownload = (title: string) => {
-    setToastMessage(`Downloading "${title}"... check your browser downloads!`);
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 3000);
-  };
-
-  const handleUpload = () => {
-    setShowUploadModal(false);
-    setToastMessage(`Resource successfully uploaded to the knowledge base!`);
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 4000);
-  };
-
-  const resources: Resource[] = [
+  const mockResources: Resource[] = [
     {
       id: '1',
       title: 'Data Structures Notes',
@@ -97,10 +87,60 @@ export function ResourceHub() {
     },
   ];
 
+  useEffect(() => {
+    async function loadResources() {
+      setLoading(true);
+      try {
+        const { data, error } = await getResources();
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          const transformed: Resource[] = data.map((res: any) => ({
+            id: res.id,
+            title: res.title,
+            description: res.description || '',
+            subject: res.subjects?.name || 'General',
+            type: res.type as Resource['type'],
+            uploadedBy: res.profiles?.full_name || 'Anonymous',
+            uploadDate: new Date(res.created_at),
+            downloads: res.downloads || 0,
+            rating: res.rating || 0,
+            views: res.views || 0,
+            fileSize: res.file_size || '0 KB',
+            tags: res.tags || [],
+          }));
+          setDbResources(transformed);
+        } else {
+          setDbResources(mockResources);
+        }
+      } catch (err) {
+        console.warn('Backend connection failed, using mock data:', err);
+        setDbResources(mockResources);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadResources();
+  }, []);
+
+  const handleDownload = (title: string) => {
+    setToastMessage(`Downloading "${title}"... check your browser downloads!`);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
+  };
+
+  const handleUpload = () => {
+    setShowUploadModal(false);
+    setToastMessage(`Resource successfully uploaded to the knowledge base!`);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 4000);
+  };
+
   const subjects = ['all', 'Computer Science', 'Mathematics', 'Physics', 'Database Systems', 'Machine Learning', 'Web Development'];
   const types = ['all', 'notes', 'assignment', 'project', 'lab', 'reference'];
 
-  const filteredResources = resources.filter(resource => {
+  const filteredResources = dbResources.filter(resource => {
     const matchesSearch = resource.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       resource.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       resource.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -199,93 +239,102 @@ export function ResourceHub() {
       </motion.div>
 
       {/* Assets Grid */}
-      <motion.div
-        initial="hidden"
-        whileInView="show"
-        viewport={{ once: true }}
-        variants={{
-          hidden: { opacity: 0 },
-          show: {
-            opacity: 1,
-            transition: { staggerChildren: 0.1 }
-          }
-        }}
-        className="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
-      >
-        {filteredResources.map((resource) => {
-          const TypeIcon = getTypeIcon(resource.type);
-
-          return (
-            <motion.div
-              key={resource.id}
-              variants={{
-                hidden: { opacity: 0, y: 20 },
-                show: { opacity: 1, y: 0 }
-              }}
-              className="group relative bg-white rounded-[2.5rem] shadow-premium border border-slate-100 overflow-hidden hover:shadow-2xl transition-all duration-500 flex flex-col"
-            >
-              <div className="p-8 flex-1">
-                <div className="flex items-center justify-between mb-6">
-                  <div className={`p-4 rounded-2xl ${getTypeColor(resource.type)} shadow-sm group-hover:scale-110 transition-transform`}>
-                    <TypeIcon className="h-6 w-6" />
-                  </div>
-                  <div className="flex items-center gap-1.5 bg-amber-50 px-2.5 py-1 rounded-full">
-                    <Star className="h-3 w-3 text-amber-500 fill-amber-500" />
-                    <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest">{resource.rating}</span>
-                  </div>
-                </div>
-
-                <h3 className="text-xl font-black text-slate-900 tracking-tight mb-3 group-hover:text-indigo-600 transition-colors">{resource.title}</h3>
-                <p className="text-slate-500 text-[14px] leading-relaxed mb-6 font-medium line-clamp-2">{resource.description}</p>
-
-                <div className="flex flex-wrap gap-2 mb-8">
-                  {resource.tags.slice(0, 3).map((tag, index) => (
-                    <span key={index} className="px-3 py-1 bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-widest rounded-lg border border-slate-100">
-                      #{tag}
-                    </span>
-                  ))}
-                </div>
-
-                <div className="flex items-center justify-between pt-6 border-t border-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                  <span>{resource.subject}</span>
-                  <span className="bg-slate-100 px-2 py-1 rounded-md">{resource.fileSize}</span>
-                </div>
-              </div>
-
-              {/* Stats Bar */}
-              <div className="px-8 py-4 bg-slate-50/50 grid grid-cols-2 gap-4 border-y border-slate-50">
-                <div className="flex items-center gap-2">
-                  <Download className="h-3 w-3 text-slate-300" />
-                  <span className="text-[10px] font-bold text-slate-500">{resource.downloads} Downloads</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Eye className="h-3 w-3 text-slate-300" />
-                  <span className="text-[10px] font-bold text-slate-500">{resource.views} Views</span>
-                </div>
-              </div>
-
-              {/* Action */}
-              <div className="p-8">
-                <button
-                  onClick={() => handleDownload(resource.title)}
-                  className="w-full py-4 bg-brand-primary/5 hover:bg-brand-primary text-brand-primary hover:text-white font-black rounded-2xl transition-all flex items-center justify-center gap-3 uppercase tracking-widest text-xs active:scale-95"
-                >
-                  <Download className="h-4 w-4" />
-                  Download File
-                </button>
-              </div>
-            </motion.div>
-          );
-        })}
-      </motion.div>
-
-      {filteredResources.length === 0 && (
-        <div className="text-center py-24">
-          <Layers className="h-20 w-20 text-slate-100 mx-auto mb-6" />
-          <h3 className="text-2xl font-black text-slate-900 tracking-tight mb-2">No Resources Found</h3>
-          <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Try adjusting your filters</p>
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-24 gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+          <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Synchronizing Knowledge Base...</p>
         </div>
+      ) : (
+        <motion.div
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true }}
+          variants={{
+            hidden: { opacity: 0 },
+            show: {
+              opacity: 1,
+              transition: { staggerChildren: 0.1 }
+            }
+          }}
+          className="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
+        >
+          {filteredResources.map((resource) => {
+            const TypeIcon = getTypeIcon(resource.type);
+
+            return (
+              <motion.div
+                key={resource.id}
+                variants={{
+                  hidden: { opacity: 0, y: 20 },
+                  show: { opacity: 1, y: 0 }
+                }}
+                className="group relative bg-white rounded-[2.5rem] shadow-premium border border-slate-100 overflow-hidden hover:shadow-2xl transition-all duration-500 flex flex-col"
+              >
+                <div className="p-8 flex-1">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className={`p-4 rounded-2xl ${getTypeColor(resource.type)} shadow-sm group-hover:scale-110 transition-transform`}>
+                      <TypeIcon className="h-6 w-6" />
+                    </div>
+                    <div className="flex items-center gap-1.5 bg-amber-50 px-2.5 py-1 rounded-full">
+                      <Star className="h-3 w-3 text-amber-500 fill-amber-500" />
+                      <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest">{resource.rating}</span>
+                    </div>
+                  </div>
+
+                  <h3 className="text-xl font-black text-slate-900 tracking-tight mb-3 group-hover:text-indigo-600 transition-colors">{resource.title}</h3>
+                  <p className="text-slate-500 text-[14px] leading-relaxed mb-6 font-medium line-clamp-2">{resource.description}</p>
+
+                  <div className="flex flex-wrap gap-2 mb-8">
+                    {resource.tags.slice(0, 3).map((tag, index) => (
+                      <span key={index} className="px-3 py-1 bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-widest rounded-lg border border-slate-100">
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center justify-between pt-6 border-t border-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    <span>{resource.subject}</span>
+                    <span className="bg-slate-100 px-2 py-1 rounded-md">{resource.fileSize}</span>
+                  </div>
+                </div>
+
+                {/* Stats Bar */}
+                <div className="px-8 py-4 bg-slate-50/50 grid grid-cols-2 gap-4 border-y border-slate-50">
+                  <div className="flex items-center gap-2">
+                    <Download className="h-3 w-3 text-slate-300" />
+                    <span className="text-[10px] font-bold text-slate-500">{resource.downloads} Downloads</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Eye className="h-3 w-3 text-slate-300" />
+                    <span className="text-[10px] font-bold text-slate-500">{resource.views} Views</span>
+                  </div>
+                </div>
+
+                {/* Action */}
+                <div className="p-8">
+                  <button
+                    onClick={() => handleDownload(resource.title)}
+                    className="w-full py-4 bg-brand-primary/5 hover:bg-brand-primary text-brand-primary hover:text-white font-black rounded-2xl transition-all flex items-center justify-center gap-3 uppercase tracking-widest text-xs active:scale-95"
+                  >
+                    <Download className="h-4 w-4" />
+                    Download File
+                  </button>
+                </div>
+              </motion.div>
+            );
+          })}
+        </motion.div>
       )}
+
+      {
+        filteredResources.length === 0 && (
+          <div className="text-center py-24">
+            <Layers className="h-20 w-20 text-slate-100 mx-auto mb-6" />
+            <h3 className="text-2xl font-black text-slate-900 tracking-tight mb-2">No Resources Found</h3>
+            <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Try adjusting your filters</p>
+          </div>
+        )
+      }
 
       {/* Upload Modal */}
       <AnimatePresence>
@@ -343,6 +392,6 @@ export function ResourceHub() {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </div >
   );
 }

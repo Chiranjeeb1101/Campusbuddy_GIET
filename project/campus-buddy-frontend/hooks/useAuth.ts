@@ -15,45 +15,46 @@ export function useAuth() {
       setLoading(false)
       return
     }
-    
-    // Set loading to false after a short delay to prevent stuck loading
+
+    // Set loading to false after a short delay only as a fallback
     const timer = setTimeout(() => {
-      setLoading(false)
-    }, 2000)
-    
-    return () => clearTimeout(timer)
+      setLoading(false);
+    }, 5000);
 
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
       if (session?.user) {
-        loadProfile(session.user.id)
+        setUser(session.user);
+        loadProfile(session.user.id);
       } else {
-        setLoading(false)
+        setLoading(false);
       }
-    })
+    });
 
     // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setUser(session?.user ?? null)
-      
-      if (session?.user) {
-        await loadProfile(session.user.id)
-      } else {
-        setProfile(null)
-        setLoading(false)
-      }
-    })
+      setUser(session?.user ?? null);
 
-    return () => subscription.unsubscribe()
+      if (session?.user) {
+        await loadProfile(session.user.id);
+      } else {
+        setProfile(null);
+        setLoading(false);
+      }
+    });
+
+    return () => {
+      clearTimeout(timer);
+      subscription.unsubscribe();
+    };
   }, [])
 
   const loadProfile = async (userId: string) => {
     try {
       const { data: existingProfile, error } = await getProfile(userId)
-      
+
       if (error && error.code === 'PGRST116') {
         // Profile doesn't exist, create one
         const user = await supabase.auth.getUser()
@@ -66,7 +67,7 @@ export function useAuth() {
             branch: user.data.user.user_metadata?.branch || 'Computer Science',
             role: 'student'
           })
-          
+
           if (createError) {
             console.error('Error creating profile:', createError)
           } else {

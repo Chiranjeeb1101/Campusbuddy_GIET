@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Star, MessageCircle, User, Clock, Filter, Zap, Shield, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getMentors, Profile } from '../lib/supabase';
 
 interface Mentor {
   id: string;
@@ -21,14 +22,10 @@ export function PeerConnect() {
   const [selectedYear, setSelectedYear] = useState('all');
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [dbMentors, setDbMentors] = useState<Mentor[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleSendMessage = (mentorName: string) => {
-    setToastMessage(`Connecting with ${mentorName}... message sent!`);
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 3000);
-  };
-
-  const mentors: Mentor[] = [
+  const mockMentors: Mentor[] = [
     {
       id: '1',
       name: 'Sarah Mitchell',
@@ -79,10 +76,51 @@ export function PeerConnect() {
     },
   ];
 
+  useEffect(() => {
+    async function loadMentors() {
+      setLoading(true);
+      try {
+        const { data, error } = await getMentors();
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          const transformed: Mentor[] = data.map((profile: any) => ({
+            id: profile.id,
+            name: profile.full_name,
+            year: `Year ${profile.year_of_study}`,
+            subjects: profile.mentor_subjects?.map((ms: any) => ms.subjects?.name) || [],
+            rating: profile.rating || 0,
+            responseTime: `< ${profile.response_time_minutes || 60} min`,
+            helpedStudents: profile.students_helped || 0,
+            expertise: profile.bio ? [profile.branch] : [],
+            isOnline: true,
+            bio: profile.bio || 'Available for mentorship and guidance.',
+          }));
+          setDbMentors(transformed);
+        } else {
+          setDbMentors(mockMentors);
+        }
+      } catch (err) {
+        console.warn('Backend connection failed, using mock data:', err);
+        setDbMentors(mockMentors);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadMentors();
+  }, []);
+
+  const handleSendMessage = (mentorName: string) => {
+    setToastMessage(`Connecting with ${mentorName}... message sent!`);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
+  };
+
   const subjects = ['all', 'Computer Science', 'Mathematics', 'Physics', 'Database Systems', 'Web Development', 'Machine Learning'];
   const years = ['all', 'Year 2', 'Year 3', 'Year 4'];
 
-  const filteredMentors = mentors.filter(mentor => {
+  const filteredMentors = dbMentors.filter(mentor => {
     const matchesSearch = mentor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       mentor.subjects.some(subject => subject.toLowerCase().includes(searchTerm.toLowerCase())) ||
       mentor.expertise.some(exp => exp.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -160,102 +198,109 @@ export function PeerConnect() {
         </div>
       </motion.div>
 
-      <motion.div
-        initial="hidden"
-        whileInView="show"
-        viewport={{ once: true }}
-        variants={{
-          hidden: { opacity: 0 },
-          show: {
-            opacity: 1,
-            transition: { staggerChildren: 0.1 }
-          }
-        }}
-        className="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
-      >
-        {filteredMentors.map((mentor) => (
-          <motion.div
-            key={mentor.id}
-            variants={{
-              hidden: { opacity: 0, y: 20 },
-              show: { opacity: 1, y: 0 }
-            }}
-            className="group relative bg-white rounded-[2.5rem] shadow-premium border border-slate-100 overflow-hidden hover:shadow-2xl transition-all duration-500"
-          >
-            <div className="h-3 bg-gradient-to-r from-brand-primary to-brand-secondary opacity-20 group-hover:opacity-100 transition-opacity" />
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-24 gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+          <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Connecting with verified mentors...</p>
+        </div>
+      ) : (
+        <motion.div
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true }}
+          variants={{
+            hidden: { opacity: 0 },
+            show: {
+              opacity: 1,
+              transition: { staggerChildren: 0.1 }
+            }
+          }}
+          className="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
+        >
+          {filteredMentors.map((mentor) => (
+            <motion.div
+              key={mentor.id}
+              variants={{
+                hidden: { opacity: 0, y: 20 },
+                show: { opacity: 1, y: 0 }
+              }}
+              className="group relative bg-white rounded-[2.5rem] shadow-premium border border-slate-100 overflow-hidden hover:shadow-2xl transition-all duration-500"
+            >
+              <div className="h-3 bg-gradient-to-r from-brand-primary to-brand-secondary opacity-20 group-hover:opacity-100 transition-opacity" />
 
-            <div className="p-8">
-              <div className="flex items-start justify-between mb-6">
-                <div className="flex items-center gap-4">
-                  <div className="relative">
-                    <div className="w-16 h-16 bg-slate-50 rounded-[1.5rem] flex items-center justify-center border border-slate-100 group-hover:border-indigo-100 transition-all">
-                      <User className="h-8 w-8 text-indigo-600" />
+              <div className="p-8">
+                <div className="flex items-start justify-between mb-6">
+                  <div className="flex items-center gap-4">
+                    <div className="relative">
+                      <div className="w-16 h-16 bg-slate-50 rounded-[1.5rem] flex items-center justify-center border border-slate-100 group-hover:border-indigo-100 transition-all">
+                        <User className="h-8 w-8 text-indigo-600" />
+                      </div>
+                      {mentor.isOnline && (
+                        <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 border-4 border-white rounded-full animate-pulse shadow-sm"></div>
+                      )}
                     </div>
-                    {mentor.isOnline && (
-                      <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 border-4 border-white rounded-full animate-pulse shadow-sm"></div>
-                    )}
+                    <div>
+                      <h3 className="text-xl font-black text-slate-900 tracking-tight">{mentor.name}</h3>
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{mentor.year}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 bg-amber-50 px-2.5 py-1 rounded-full">
+                    <Star className="h-3 w-3 text-amber-500 fill-amber-500" />
+                    <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest">{mentor.rating}</span>
+                  </div>
+                </div>
+
+                <p className="text-slate-600 text-[14px] leading-relaxed mb-6 font-medium line-clamp-2 italic">
+                  "{mentor.bio}"
+                </p>
+
+                <div className="flex flex-wrap gap-2 mb-8">
+                  {mentor.subjects.slice(0, 2).map((subject, index) => (
+                    <span key={index} className="px-3 py-1.5 bg-indigo-50/50 text-indigo-600 text-[10px] font-black uppercase tracking-widest rounded-lg border border-indigo-100/30">
+                      {subject}
+                    </span>
+                  ))}
+                  {mentor.subjects.length > 2 && (
+                    <span className="px-3 py-1.5 bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-widest rounded-lg border border-slate-100">
+                      +{mentor.subjects.length - 2} MORE
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 pt-6 border-t border-slate-50">
+                  <div>
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Zap className="h-3 w-3 text-slate-300" />
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Response Time</span>
+                    </div>
+                    <p className="text-sm font-black text-slate-900">{mentor.responseTime}</p>
                   </div>
                   <div>
-                    <h3 className="text-xl font-black text-slate-900 tracking-tight">{mentor.name}</h3>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{mentor.year}</p>
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Sparkles className="h-3 w-3 text-slate-300" />
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Students Helped</span>
+                    </div>
+                    <p className="text-sm font-black text-slate-900">{mentor.helpedStudents} Students</p>
                   </div>
-                </div>
-                <div className="flex items-center gap-1.5 bg-amber-50 px-2.5 py-1 rounded-full">
-                  <Star className="h-3 w-3 text-amber-500 fill-amber-500" />
-                  <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest">{mentor.rating}</span>
                 </div>
               </div>
 
-              <p className="text-slate-600 text-[14px] leading-relaxed mb-6 font-medium line-clamp-2 italic">
-                "{mentor.bio}"
-              </p>
-
-              <div className="flex flex-wrap gap-2 mb-8">
-                {mentor.subjects.slice(0, 2).map((subject, index) => (
-                  <span key={index} className="px-3 py-1.5 bg-indigo-50/50 text-indigo-600 text-[10px] font-black uppercase tracking-widest rounded-lg border border-indigo-100/30">
-                    {subject}
-                  </span>
-                ))}
-                {mentor.subjects.length > 2 && (
-                  <span className="px-3 py-1.5 bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-widest rounded-lg border border-slate-100">
-                    +{mentor.subjects.length - 2} MORE
-                  </span>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 pt-6 border-t border-slate-50">
-                <div>
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <Zap className="h-3 w-3 text-slate-300" />
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Response Time</span>
+              <div className="px-8 pb-8">
+                <button
+                  onClick={() => handleSendMessage(mentor.name)}
+                  className="w-full group relative py-4 bg-brand-surface text-white font-black rounded-2xl shadow-xl hover:shadow-indigo-500/20 active:scale-95 transition-all overflow-hidden"
+                >
+                  <div className="relative z-10 flex items-center justify-center gap-3 tracking-widest uppercase text-xs">
+                    <MessageCircle className="h-4 w-4" />
+                    Send Message
                   </div>
-                  <p className="text-sm font-black text-slate-900">{mentor.responseTime}</p>
-                </div>
-                <div>
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <Sparkles className="h-3 w-3 text-slate-300" />
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Students Helped</span>
-                  </div>
-                  <p className="text-sm font-black text-slate-900">{mentor.helpedStudents} Students</p>
-                </div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </button>
               </div>
-            </div>
-
-            <div className="px-8 pb-8">
-              <button
-                onClick={() => handleSendMessage(mentor.name)}
-                className="w-full group relative py-4 bg-brand-surface text-white font-black rounded-2xl shadow-xl hover:shadow-indigo-500/20 active:scale-95 transition-all overflow-hidden"
-              >
-                <div className="relative z-10 flex items-center justify-center gap-3 tracking-widest uppercase text-xs">
-                  <MessageCircle className="h-4 w-4" />
-                  Send Message
-                </div>
-                <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </button>
-            </div>
-          </motion.div>
-        ))}
-      </motion.div>
+            </motion.div>
+          ))}
+        </motion.div>
+      )}
 
       {filteredMentors.length === 0 && (
         <motion.div
